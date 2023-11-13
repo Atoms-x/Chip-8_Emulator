@@ -150,20 +150,22 @@ void decode_Execute(uint16_t opCode){
                     SP -= 1;
                     break;
                 default:
-                    cout << "Code Error! ";
+                    cout << "Code Error! 00E";
                     exit(1);
                     break;
                 }
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! 00";
                 exit(1);
                 break;
             }
+            break;
         default:
-            cout << "This is the 0NNN Opcode ";                                     // Opcode 0NNN - Call machine code routine at address NNN
+            cout << "NEED TO WRITE: 0NNN Opcode ";                                     // Opcode 0NNN - Call machine code routine at address NNN
             break;
         }
+        break;
     case 0x1000:
         PC = (nibTwo + nibThree + nibFour);                                         // Opcode 1NNN - Set PC to NNN / Jump to address NNN
         break;
@@ -257,10 +259,11 @@ void decode_Execute(uint16_t opCode){
             V[hDigitX] = V[hDigitX] << 1;
             break;
         default:
-            cout << "Code Error! ";
+            cout << "Code Error! 8000";
             exit(1);
             break;
         }
+        break;
     case 0x9000:
         switch (nibFour)
         {
@@ -270,10 +273,11 @@ void decode_Execute(uint16_t opCode){
             }
             break;
         default:
-            cout << "Code Error! ";
+            cout << "Code Error! 9000";
             exit(1);
             break;
         }
+        break;
     case 0xA000:
         I = (nibTwo + nibThree + nibFour);                                          // Opcode ANNN - Set I to addres NNN
         break;
@@ -297,7 +301,7 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: Key press check for VX ";
                 break;
             default:
-                cout << "Code Error!";
+                cout << "Code Error! EX9";
                 exit(1);
                 break;
             }
@@ -309,12 +313,12 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: Key press check against VX ";               // Opcode EXA1 - key press check against VX
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! EXA";
                 exit(1);
                 break;
             }
         default:
-            cout << "Code Error! ";
+            cout << "Code Error! E000";
             exit(1);    
             break;
         }
@@ -330,7 +334,7 @@ void decode_Execute(uint16_t opCode){
             case 0x000A:
                 cout << "NEED TO WRITE: Wait for keypress ";                        // Opcode FX0A - Wait for keypress
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F000";
                 exit(1);
                 break;
             }
@@ -346,7 +350,7 @@ void decode_Execute(uint16_t opCode){
             case 0x000E:
                 I = I + V[hDigitX];                                                 // Opcode FX1E - Add values of I and VX and store in I
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F010";
                 exit(1);
                 break;
             }
@@ -358,7 +362,7 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: set I to sprite address for character sprite in VX "; //Opcode FX29 - Set location of sprite for character in VX
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F020";
                 exit(1);
                 break;
             }
@@ -370,7 +374,7 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: some BCD stuff ";                            // Opcode FX33 - Some BCD stuff
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F030";
                 exit(1);
                 break;
             }
@@ -382,7 +386,7 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: some regdump stuff ";                       // Opcode FX55 - some regdump stuff
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F050";
                 exit(1);
                 break;
             }
@@ -394,18 +398,19 @@ void decode_Execute(uint16_t opCode){
                 cout << "NEED TO WRITE: some regload stuff ";                       // Opcode FX65 - some regload stuff
                 break;
             default:
-                cout << "Code Error! ";
+                cout << "Code Error! F060";
                 exit(1);
                 break;
             }
             break;
         default:
-            cout << "Code Error! ";
+            cout << "Code Error! F";
             exit(1);
             break;
         }
+        break;
     default:
-        cout << "Code Error!";
+        cout << "Code Error! 0000";
         exit(1);
         break;
     }
