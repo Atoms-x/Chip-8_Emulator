@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <stdint.h>
+#include <cstdlib>
+#include <time.h>
 
 using namespace std;
 
@@ -25,12 +27,7 @@ uint8_t MEMORY[0xFFF] ={0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   
 uint8_t V[16] = {};                                                         // Array representing 8-bit registers - used as variables (0x0 to 0xE) + 8-bit flag register (0xF) - also a variable, but used as a flag by some instructions
 
-uint8_t X;                                                                  // 4-bit constant register identifier (it is an 8-bit data type, but will mask for only the first 4 bits for 0x0 to 0xF)
-uint8_t Y;                                                                  // 4-bit constant register identifier (it is an 8-bit data type, but will mask for only the first 4 bits for 0x0 to 0xF)
-uint8_t NN;                                                                 // 8-bit constant, for setting V-register values or doing conditionals
-
 uint16_t I;                                                                 // 16-bit index register for memory addresses - Only rightmost 12 bits used since only 4096 memory available
-uint16_t NNN;                                                               // addr, memory address
 uint16_t PC = 0x200;                                                        // Program Counter - stores currently executing address
 
 uint16_t STACK[16] = {};                                                    // Call Stack for subroutines/functions, Holds 16-bit values
@@ -121,18 +118,18 @@ uint16_t fetch(){
 //      L
 //***************************************************************************
 void decode_Execute(uint16_t opCode){
-    uint16_t nibOne;                                                        // Creating four nibbles that are 16-bit so they can be switch/cased by each digit, working down what Opcode to execute
+    uint16_t nibOne;                                                                // Creating four nibbles that are 16-bit so they can be switch/cased by each digit, working down what Opcode to execute
     uint16_t nibTwo;
     uint16_t nibThree;
     uint16_t nibFour;
 
-    nibOne = opCode & 0xF000;                                               // Masking the nibbles with an AND operator to leave the appropriate nibble/hex digit in place for checking
+    nibOne = opCode & 0xF000;                                                       // Masking the nibbles with an AND operator to leave the appropriate nibble/hex digit in place for checking
     nibTwo = opCode & 0x0F00;
     nibThree = opCode & 0x00F0;
     nibFour = opCode & 0x000F;
 
-    uint16_t hDigitX = 0;
-    uint16_t hDigitY = 0;
+    uint16_t hDigitX = nibTwo >> 8;
+    uint16_t hDigitY = nibThree >> 4;
 
     switch (nibOne)
     {
@@ -146,17 +143,158 @@ void decode_Execute(uint16_t opCode){
                 switch (nibFour)
                 {
                 case 0x0000:
-                    cout << "NEED TO WRITE: Clears the Screen";             // Opcode 00E0 - Clears the screen
+                    cout << "NEED TO WRITE: Clears the Screen ";                    // Opcode 00E0 - Clears the screen
                     break;
                 case 0x000E:
-                    PC = STACK[SP];                                         // Opcode 00EE - Returns from a subroutine/sets PC to NNN/addr at top of stack, then decrements the stack pointer/stack
+                    PC = STACK[SP];                                                 // Opcode 00EE - Returns from a subroutine/sets PC to NNN/addr at top of stack, then decrements the stack pointer/stack
                     SP -= 1;
                     break;
                 default:
-                    cout << "Code Error!";
+                    cout << "Code Error! ";
                     exit(1);
                     break;
                 }
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+        default:
+            cout << "This is the 0NNN Opcode ";                                     // Opcode 0NNN - Call machine code routine at address NNN
+            break;
+        }
+    case 0x1000:
+        PC = (nibTwo + nibThree + nibFour);                                         // Opcode 1NNN - Set PC to NNN / Jump to address NNN
+        break;
+    case 0x2000:
+        SP += 1;                                                                    // Opcode 2NNN - Calls subroutine at NNN / put PC onto the stack and set PC to NNN
+        STACK[SP] = PC;
+        PC = (nibTwo + nibThree + nibFour);
+        break;
+    case 0x3000:                                            
+        if (V[hDigitX] == nibThree + nibFour){                                      // Opcode 3XNN - Skip the next instruction if VX == NN / increment PC by 2 if equal
+            PC += 2;
+        }
+        break;
+    case 0x4000:                                                                   
+        if (V[hDigitX] != nibThree + nibFour){                                      // Opcode 4XNN - Skip the next instruction if VX != NN / increment PC by 2 if not equal
+            PC += 2;
+        }
+        break;
+    case 0x5000:
+        if (V[hDigitX] == V[hDigitY]){                                              // Opcode 5XY0 - Skip the next instruction if VX == VY / increment PC by 2 if equal
+            PC += 2;
+        }
+        break;
+    case 0x6000:                                  
+        V[hDigitX] = nibThree + nibFour;                                            // Opcode 6xNN - Set Vx to NN
+        break;
+    case 0x7000:                                                                    // Opcode 7xNN - Add NN to VX / VX = VX + NN (Don't change the carry flag)
+        if (hDigitX != 0x000F){
+            V[hDigitX] = V[hDigitX] + (nibThree + nibFour); 
+        }
+        break;
+    case 0x8000:
+        switch (nibFour)                                                    
+        {
+        case 0x0000:                                                                // Opcode 8XY0 - Set VX = VY
+            V[hDigitX] = V[hDigitY];
+            break;
+        case 0x0001:                                                        
+            V[hDigitX] = V[hDigitX] | V[hDigitY];                                   // Opcode 8XY1 - Set VX = VX | VY
+            break;
+        case 0x0002:
+            V[hDigitX] = V[hDigitX] & V[hDigitY];                                   // Opcode 8XY2 - Set VX = VX & VY
+            break;
+        case 0x0003:
+            V[hDigitX] = V[hDigitX] ^ V[hDigitY];                                   // Opcode 8XY3 - Set VX = VX ^ VY
+            break;
+        case 0x0004:
+            V[hDigitX] = V[hDigitX] + V[hDigitY];                                   // Opcode 8XY4 - Set VX = VX ^ VY, if VX > 255 set VF = 1, otherwise VF = 0
+            if(V[hDigitX] > 0x00FF){                         
+                V[0x000F] = 1;
+                V[hDigitX] = V[hDigitX] & 0x00FF;
+            }
+            else{
+                V[0x000F] = 0;
+            }                           
+            break;
+        case 0x0005:                                                                // OpCode 8XY5 - If VX > VY set VF = 1, otherwise VF = 0. The VX = VX - VY
+            if (V[hDigitX] > V[hDigitY]){
+                V[0x000F] = 1;
+            }
+            else{
+                V[0x000F] = 0;
+            }
+            V[hDigitX] = V[hDigitX] - V[hDigitY];
+            break;
+        case 0x0006:
+            if ((V[hDigitX] & 0x0001 == 1)){                                        // Opcode 8XY6 - IF least-significant bit of VX is 1, VF = 1, else VF = 0, then bit shift to divide VX by 2
+                V[0x000F] = 1;
+            }
+            else{
+                V[0x000F] = 0;
+            }
+            V[hDigitX] = V[hDigitX] >> 1;
+            break;
+        case 0x0007:
+            if (V[hDigitX] < V[hDigitY]){                                           // Opcode 8XY7 - If VX < VY set VF = 1, otherwise VF = 0. The VX = VY - VX
+                V[0x000F] = 1;
+            }
+            else{
+                V[0x000F] = 0;
+            }
+            V[hDigitX] = V[hDigitY] - V[hDigitX];
+            break;
+        case 0x000E:
+            if (((V[hDigitX])>>7) & 0x0001 == 1){                                   // Opcode 8XYE - If most-significant bit of VX is 1, VF = 1, else VF = 0, then bit shift to divide VX by 2
+                V[0x000F] = 1;
+            }
+            else{
+                V[0x000F] = 0;
+            }
+            V[hDigitX] = V[hDigitX] << 1;
+            break;
+        default:
+            cout << "Code Error! ";
+            exit(1);
+            break;
+        }
+    case 0x9000:
+        switch (nibFour)
+        {
+        case 0x0000:                                                                // Opcode 9XY0 - If VX != VY skip next instruction / increment PC by 2 if not equal
+            if(V[hDigitX] != V[hDigitY]){
+                PC += 2;
+            }
+            break;
+        default:
+            cout << "Code Error! ";
+            exit(1);
+            break;
+        }
+    case 0xA000:
+        I = (nibTwo + nibThree + nibFour);                                          // Opcode ANNN - Set I to addres NNN
+        break;
+    case 0xB000:
+        PC = (nibTwo + nibThree + nibFour) + V[0x0];                                // Opcode BNNN - Set PC to address NNN + V0
+        break;
+    case 0xC000:                                                                    // Opcode CXNN - Set VX = Random nubmer between 0 and 255 & NN
+        srand(time(0));
+        V[hDigitX] = (rand() % 255) & (nibThree + nibFour);
+        break;
+    case 0xD000:                                                                    // Opcode DXYN - Display
+        cout << "NEED TO WRITE: Display/render ";
+        break;
+    case 0xE000:
+        switch (nibThree)
+        {
+        case 0x0090:
+            switch (nibFour)
+            {
+            case 0x000E:                                                            // Opcode EX9E - Key press check for VX
+                cout << "NEED TO WRITE: Key press check for VX ";
                 break;
             default:
                 cout << "Code Error!";
@@ -164,51 +302,108 @@ void decode_Execute(uint16_t opCode){
                 break;
             }
             break;
+        case 0x00A0:
+            switch (nibFour)
+            {
+            case 0x0001:
+                cout << "NEED TO WRITE: Key press check against VX ";               // Opcode EXA1 - key press check against VX
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
         default:
-            cout << "This is the 0NNN Opcode";                              // Opcode 0NNN - Call machine code routine at address NNN
+            cout << "Code Error! ";
+            exit(1);    
             break;
         }
-        break;
-    case 0x1000:
-        PC = (nibTwo + nibThree + nibFour);                                 // Opcode 1NNN - Set PC to NNN / Jump to address NNN
-        break;
-    case 0x2000:
-        SP += 1;                                                            // Opcode 2NNN - Calls subroutine at NNN / put PC onto the stack and set PC to NNN
-        STACK[SP] = PC;
-        PC = (nibTwo + nibThree + nibFour);
-        break;
-    case 0x3000:
-        hDigitX = nibTwo >> 8;                                              // Opcode 3XNN - Skip the next instruction if VX == NN / increment PC by 2 if equal
-        if (V[hDigitX] == nibThree + nibFour){
-            PC += 2;
+    case 0xF000:
+        switch (nibThree)
+        {
+        case 0x0000:
+            switch (nibFour)
+            {
+            case 0x0007:
+                cout << "NEED TO WRITE: Set VX to the value of delay timer ";       // OpCode FX07 - Set VX to the value of the delay timer
+                break;
+            case 0x000A:
+                cout << "NEED TO WRITE: Wait for keypress ";                        // Opcode FX0A - Wait for keypress
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        case 0x0010:
+            switch (nibFour)
+            {
+            case 0x0005:
+                cout << "NEED TO WRITE: Set delay timer to VX ";                    // Opcode FX15 - Set delay timer to VX
+                break;
+            case 0x0008:
+                cout << "NEED TO WRITE: Set sound timer to VX ";                    // Opcode FX18 - Set sound timer to VX
+            case 0x000E:
+                I = I + V[hDigitX];                                                 // Opcode FX1E - Add values of I and VX and store in I
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        case 0x0020:
+            switch (nibFour)
+            {
+            case 0x0009:
+                cout << "NEED TO WRITE: set I to sprite address for character sprite in VX "; //Opcode FX29 - Set location of sprite for character in VX
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        case 0x0030:
+            switch (nibFour)
+            {
+            case 0x0003:
+                cout << "NEED TO WRITE: some BCD stuff ";                            // Opcode FX33 - Some BCD stuff
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        case 0x0050:
+            switch (nibFour)
+            {
+            case 0x0005:
+                cout << "NEED TO WRITE: some regdump stuff ";                       // Opcode FX55 - some regdump stuff
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        case 0x0060:
+            switch (nibFour)
+            {
+            case 0x0005:
+                cout << "NEED TO WRITE: some regload stuff ";                       // Opcode FX65 - some regload stuff
+                break;
+            default:
+                cout << "Code Error! ";
+                exit(1);
+                break;
+            }
+            break;
+        default:
+            cout << "Code Error! ";
+            exit(1);
+            break;
         }
-        break;
-    case 0x4000:
-        hDigitX = nibTwo >> 8;                                              // Opcode 4XNN - Skip the next instruction if VX != NN / increment PC by 2 if not equal                        
-        if (V[hDigitX] != nibThree + nibFour){
-            PC += 2;
-        }
-        break;
-    case 0x5000:
-        hDigitX = nibTwo >> 8;                                              // Opcode 5XY0 - Skip the next instruction if VX == VY / increment PC by 2 if equal
-        hDigitY = nibThree >> 4;
-        if (V[hDigitX] == V[hDigitY]){
-            PC += 2;
-        }
-        break;
-    case 0x6000:
-        hDigitX = nibTwo >> 8;                                              // Opcode 6xNN - Set Vx to NN
-        V[hDigitX] = nibThree + nibFour;
-        break;
-    case 0x7000:                                                            // Opcode 7xNN - Add NN to VX / VX = VX + NN (Don't change the carry flag)
-        hDigitX = nibTwo >> 8;
-        if (hDigitX != 0x000F){
-            V[hDigitX] = V[hDigitX] + (nibThree + nibFour); 
-        }
-        break;
-    case 0x8000:
-        
-        break;
     default:
         cout << "Code Error!";
         exit(1);
