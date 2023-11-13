@@ -95,14 +95,14 @@ void fileReadToMemory (string filename){
 uint16_t fetch(){
     if (!(PC >= 0xFFF)){
 
-        uint16_t byteOne = MEMORY[PC];
+        uint16_t byteOne = MEMORY[PC];                                      // Putting each byte of the 2-byte Opcodes into 16bit integers so they can be masked as the full Opcode
         uint16_t byteTwo = MEMORY[PC+1];
 
-        byteOne = byteOne << 8;
+        byteOne = byteOne << 8;                                             // Bit shifting the first byte by 8 to put it into the left most 8-bits (first two nibbles of four for Opcode)
 
-        uint16_t opCode = byteOne + byteTwo;
+        uint16_t opCode = byteOne + byteTwo;                                // Adding the two together to make the full 2-byte Opcode
 
-        PC += 2;
+        PC += 2;                                                            // Shift the program counter by 2 so that it moves to the beginning of the next 2-byte Opcode
 
         return opCode;
     }
@@ -122,12 +122,12 @@ uint16_t fetch(){
 //      L
 //***************************************************************************
 void decode_Execute(uint16_t opCode){
-    uint16_t nibOne;
+    uint16_t nibOne;                                                        // Creating four nibbles that are 16-bit so they can be switch/cased by each digit, working down what Opcode to execute
     uint16_t nibTwo;
     uint16_t nibThree;
     uint16_t nibFour;
 
-    nibOne = opCode & 0xF000;
+    nibOne = opCode & 0xF000;                                               // Masking the nibbles with an AND operator to leave the appropriate nibble/hex digit in place for checking
     nibTwo = opCode & 0x0F00;
     nibThree = opCode & 0x00F0;
     nibFour = opCode & 0x000F;
@@ -144,11 +144,12 @@ void decode_Execute(uint16_t opCode){
                 switch (nibFour)
                 {
                 case 0x0000:
-                    cout << "NEED TO WRITE: Clears the Screen"; // Opcode 00E0 - Clears the screen
+                    cout << "NEED TO WRITE: Clears the Screen";             // Opcode 00E0 - Clears the screen
                     break;
-                
                 case 0x000E:
-                    cout << "NEED TO WRITE: Returns from a subroutine"; // Opcode 00EE - Returns from a subroutine
+                    PC = STACK[SP];                                         // Opcode 00EE - Returns from a subroutine/sets PC to NNN/addr at top of stack, then decrements the stack pointer/stack
+                    SP -= 1;
+                    break;
                 default:
                     cout << "Code Error!";
                     exit(1);
@@ -162,14 +163,442 @@ void decode_Execute(uint16_t opCode){
             }
             break;
         default:
-            cout << "This is the 0NNN Opcode"; // Opcode 0NNN - Call machine code routine at address NNN
-            exit(1);
+            cout << "This is the 0NNN Opcode";                              // Opcode 0NNN - Call machine code routine at address NNN
             break;
         }
         break;
     case 0x1000:
-        PC = (nibTwo + nibThree + nibFour); // OpCode 1NNN - Set PC to NNN/Jump to address NNN
+        PC = (nibTwo + nibThree + nibFour);                                 // Opcode 1NNN - Set PC to NNN/Jump to address NNN
         break;
+    case 0x2000:
+        SP += 1;                                                            // Opcode 2NNN - Calls subroutine at NNN/put PC onto the stack and set PC to NNN
+        STACK[SP] = PC;
+        PC = (nibTwo + nibThree + nibFour);
+        break;
+    case 0x3000:
+        switch (nibTwo)                                                     // Opcode 3XNN - Skip the next instruction if VX == NN/increment PC by 2 if equal
+        {
+        case 0x0000:
+            if (V0 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0100:
+            if (V1 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0200:
+            if (V2 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0300:
+            if (V3 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0400:
+            if (V4 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0500:
+            if (V5 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0600:
+            if (V6 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0700:
+            if (V7 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0800:
+            if (V8 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0900:
+            if (V9 == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0A00:
+            if (VA == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0B00:
+            if (VB == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0C00:
+            if (VC == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0D00:
+            if (VD == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0E00:
+            if (VE == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0F00:
+            if (VF == nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        default:
+            break;
+        }
+    case 0x4000:
+        switch (nibTwo)                                                     // Opcode 4XNN - Skip the next instruction if VX != NN/increment PC by 2 if not equal
+        {
+        case 0x0000:
+            if (V0 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0100:
+            if (V1 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0200:
+            if (V2 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0300:
+            if (V3 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0400:
+            if (V4 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0500:
+            if (V5 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0600:
+            if (V6 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0700:
+            if (V7 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0800:
+            if (V8 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0900:
+            if (V9 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0A00:
+            if (VA != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0B00:
+            if (VB != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0C00:
+            if (VC != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0D00:
+            if (VD != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0E00:
+            if (VE != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0F00:
+            if (VF != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        default:
+            break;
+        }
+    case 0x5000:
+        switch (nibTwo)                                                     // Opcode 5XY0 - Skip the next instruction if VX -= VY/increment PC by 2 if equal
+        {
+        case 0x0000:
+            switch (nibThree)
+            {
+            case 0x0000:
+                if (V0 == V0){
+                    PC += 2;
+                }
+                break;
+            case 0x0010:
+                if (V0 == V1){
+                    PC += 2;
+                }
+                break;
+            case 0x0020:
+                if (V0 == V2){
+                    PC += 2;
+                }
+                break;
+            case 0x0030:
+                if (V0 == V3){
+                    PC += 2;
+                }
+                break;
+            case 0x0040:
+                if (V0 == V4){
+                    PC += 2;
+                }
+                break;
+            case 0x0050:
+                if (V0 == V5){
+                    PC += 2;
+                }
+                break;
+            case 0x0060:
+                if (V0 == V6){
+                    PC += 2;
+                }
+                break;
+            case 0x0070:
+                if (V0 == V7){
+                    PC += 2;
+                }
+                break;
+            case 0x0080:
+                if (V0 == V8){
+                    PC += 2;
+                }
+                break;
+            case 0x0090:
+                if (V0 == V9){
+                    PC += 2;
+                }
+                break;
+            case 0x00A0:
+                if (V0 == VA){
+                    PC += 2;
+                }
+                break;
+            case 0x00B0:
+                if (V0 == VB){
+                    PC += 2;
+                }
+                break;
+            case 0x00C0:
+                if (V0 == VC){
+                    PC += 2;
+                }
+                break;
+            case 0x00D0:
+                if (V0 == VD){
+                    PC += 2;
+                }
+                break;
+            case 0x00E0:
+                if (V0 == VE){
+                    PC += 2;
+                }
+                break;
+            case 0x00F0:
+                if (V0 == VF){
+                    PC += 2;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        case 0x0100:
+            switch (nibThree)
+            {
+            case 0x0000:
+                if (V1 == V0){
+                    PC += 2;
+                }
+                break;
+            case 0x0010:
+                if (V1 == V1){
+                    PC += 2;
+                }
+                break;
+            case 0x0020:
+                if (V1 == V2){
+                    PC += 2;
+                }
+                break;
+            case 0x0030:
+                if (V1 == V3){
+                    PC += 2;
+                }
+                break;
+            case 0x0040:
+                if (V1 == V4){
+                    PC += 2;
+                }
+                break;
+            case 0x0050:
+                if (V1 == V5){
+                    PC += 2;
+                }
+                break;
+            case 0x0060:
+                if (V1 == V6){
+                    PC += 2;
+                }
+                break;
+            case 0x0070:
+                if (V1 == V7){
+                    PC += 2;
+                }
+                break;
+            case 0x0080:
+                if (V1 == V8){
+                    PC += 2;
+                }
+                break;
+            case 0x0090:
+                if (V1 == V9){
+                    PC += 2;
+                }
+                break;
+            case 0x00A0:
+                if (V1 == VA){
+                    PC += 2;
+                }
+                break;
+            case 0x00B0:
+                if (V1 == VB){
+                    PC += 2;
+                }
+                break;
+            case 0x00C0:
+                if (V1 == VC){
+                    PC += 2;
+                }
+                break;
+            case 0x00D0:
+                if (V1 == VD){
+                    PC += 2;
+                }
+                break;
+            case 0x00E0:
+                if (V1 == VE){
+                    PC += 2;
+                }
+                break;
+            case 0x00F0:
+                if (V1 == VF){
+                    PC += 2;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        case 0x0200:
+            if (V2 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0300:
+            if (V3 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0400:
+            if (V4 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0500:
+            if (V5 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0600:
+            if (V6 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0700:
+            if (V7 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0800:
+            if (V8 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0900:
+            if (V9 != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0A00:
+            if (VA != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0B00:
+            if (VB != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0C00:
+            if (VC != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0D00:
+            if (VD != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0E00:
+            if (VE != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        case 0x0F00:
+            if (VF != nibThree + nibFour){
+                PC += 2;
+            }
+            break;
+        default:
+            cout << "Code Error!";
+            exit(1);
+            break;
+        }
     default:
         cout << "Code Error!";
         exit(1);
