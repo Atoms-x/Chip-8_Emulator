@@ -32,14 +32,24 @@ uint8_t NN;                                                                 // 8
 
 uint16_t I;                                                                 // 16-bit index register for memory addresses - Only rightmost 12 bits used since only 4096 memory available
 uint16_t NNN;                                                               // addr, memory address
-uint16_t PC;                                                                // Program Counter - stores currently executing address
+uint16_t PC = 0x200;                                                        // Program Counter - stores currently executing address
 
 uint16_t STACK[16] = {};                                                    // Call Stack for subroutines/functions, Holds 16-bit values
-uint8_t SP;                                                                 // Stack Pointer - points to the top level of the stack
+uint8_t SP = 0;                                                             // Stack Pointer - points to the top level of the stack
 
 uint8_t DELAY;                                                              // 8-bit delay timer, count down at 60Hz until it reaches 0. Value can be set and read
 uint8_t SOUND;                                                              // 8-bit soudn timer, count down at 60Hz until it reaches 0. Beep is played when value is non-zero
 
+
+//***************************************************************************
+// void fileReadToMemory
+//  Arguments:
+//      string filename: The name of the file given by user
+//  Returns:
+//      Nothing
+//  Purpose:
+//      Loads the file bytes directly into memory starting at 0x200
+//***************************************************************************
 void fileReadToMemory (string filename){
     ifstream ch8Rom;
     ch8Rom.open(filename, ios::binary | ios::in);
@@ -49,31 +59,80 @@ void fileReadToMemory (string filename){
         exit(1);
     }
     else{
-        ch8Rom.seekg(0, ch8Rom.end);
+        ch8Rom.seekg(0, ch8Rom.end);                                        // seekg() sets/moves a position within the open file, utilizing this to get the file size in bytes with tellg()
         int romLength = ch8Rom.tellg();
         ch8Rom.seekg(0, ch8Rom.beg);
         
-        uint8_t* rBuffer = new uint8_t[romLength];
+        uint8_t* rBuffer = new uint8_t[romLength];                          // create a buffer to read bytes from the file and eventually into memory
 
         while (ch8Rom.read(reinterpret_cast<char*>(rBuffer), romLength)){   // reinterpret_cast allows the use of a uint8_t buffer since it can alter a pointer type to integer type, 
             int j = 0x200;                                                  // despite the elements being read as chars. This keeps the data from being signed
             for (int i=0; i < romLength; i++){                           
-                MEMORY[j] = rBuffer[i];
+                MEMORY[j] = rBuffer[i];                                     // Game memory starts at 0x200 (512) because the previous memory locations are normally saved for the Chip-8 interpreter and font
                 j++;
             }
         }
         delete[] rBuffer;
     }
-    ch8Rom.close();
+    if (ch8Rom.eof()){                                                      // Check for issue reading the file
+        ch8Rom.close();
+    }
+    else if (ch8Rom.fail()){
+        cout << "Error reading the file!" << endl;
+        exit(1);
+    }
 }
 
+//***************************************************************************
+// void fetch
+//  Arguments:
+//      s
+//  Returns:
+//      N
+//  Purpose:
+//      L
+//***************************************************************************
+uint16_t fetch(){
+    if (!(PC >= 0xFFF)){
+
+        uint16_t byteOne = MEMORY[PC];
+        uint16_t byteTwo = MEMORY[PC+1];
+
+        byteOne = byteOne << 8;
+
+        uint16_t opCode = byteOne + byteTwo;
+
+        PC += 2;
+
+        return opCode;
+    }
+    else{
+        cout << "Memory out of bounds!" << endl;
+        exit(1);
+    }
+}
+
+void decode_Execute(uint16_t opCode){
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////int main/////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 int main() {
+    uint16_t opCode = 0;
 
     string filename = "";
     cout << "Specify Chip-8 ROM file name: ";
     cin >> filename;
 
     fileReadToMemory(filename);
+
+    while(1){
+        opCode = fetch();
+        decode_Execute(opCode);
+    }
 
     return 0;
 }
