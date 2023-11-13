@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdint.h>
 
 using namespace std;
@@ -39,7 +40,40 @@ uint8_t SP;                                                                 // S
 uint8_t DELAY;                                                              // 8-bit delay timer, count down at 60Hz until it reaches 0. Value can be set and read
 uint8_t SOUND;                                                              // 8-bit soudn timer, count down at 60Hz until it reaches 0. Beep is played when value is non-zero
 
+void fileReadToMemory (string filename){
+    ifstream ch8Rom;
+    ch8Rom.open(filename, ios::binary | ios::in);
+
+    if(!ch8Rom){
+        cout << "FILE NOT FOUND" << endl;
+        exit(1);
+    }
+    else{
+        ch8Rom.seekg(0, ch8Rom.end);
+        int romLength = ch8Rom.tellg();
+        ch8Rom.seekg(0, ch8Rom.beg);
+        
+        uint8_t* rBuffer = new uint8_t[romLength];
+
+        while (ch8Rom.read(reinterpret_cast<char*>(rBuffer), romLength)){   // reinterpret_cast allows the use of a uint8_t buffer since it can alter a pointer type to integer type, 
+            int j = 0x200;                                                  // despite the elements being read as chars. This keeps the data from being signed
+            for (int i=0; i < romLength; i++){                           
+                MEMORY[j] = rBuffer[i];
+                j++;
+            }
+        }
+        delete[] rBuffer;
+    }
+    ch8Rom.close();
+}
+
 int main() {
+
+    string filename = "";
+    cout << "Specify Chip-8 ROM file name: ";
+    cin >> filename;
+
+    fileReadToMemory(filename);
 
     return 0;
 }
