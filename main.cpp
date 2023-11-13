@@ -112,8 +112,69 @@ uint16_t fetch(){
     }
 }
 
+//***************************************************************************
+// void decode_Execute
+//  Arguments:
+//      s
+//  Returns:
+//      N
+//  Purpose:
+//      L
+//***************************************************************************
 void decode_Execute(uint16_t opCode){
+    uint16_t nibOne;
+    uint16_t nibTwo;
+    uint16_t nibThree;
+    uint16_t nibFour;
 
+    nibOne = opCode & 0xF000;
+    nibTwo = opCode & 0x0F00;
+    nibThree = opCode & 0x00F0;
+    nibFour = opCode & 0x000F;
+
+    switch (nibOne)
+    {
+    case 0x0000:
+        switch (nibTwo)
+        {
+        case 0x0000:
+            switch (nibThree)
+            {
+            case 0x00E0:
+                switch (nibFour)
+                {
+                case 0x0000:
+                    cout << "NEED TO WRITE: Clears the Screen"; // Opcode 00E0 - Clears the screen
+                    break;
+                
+                case 0x000E:
+                    cout << "NEED TO WRITE: Returns from a subroutine"; // Opcode 00EE - Returns from a subroutine
+                default:
+                    cout << "Code Error!";
+                    exit(1);
+                    break;
+                }
+                break;
+            default:
+                cout << "Code Error!";
+                exit(1);
+                break;
+            }
+            break;
+        default:
+            cout << "This is the 0NNN Opcode"; // Opcode 0NNN - Call machine code routine at address NNN
+            exit(1);
+            break;
+        }
+        break;
+    case 0x1000:
+        PC = (nibTwo + nibThree + nibFour); // OpCode 1NNN - Set PC to NNN/Jump to address NNN
+        break;
+    default:
+        cout << "Code Error!";
+        exit(1);
+        break;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
