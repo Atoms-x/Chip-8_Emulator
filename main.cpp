@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <time.h>
 
+//#define SDL_MAIN_HANDLED
+#include <SDL2/SDL.h>
+
 using namespace std;
 
 uint8_t MEMORY[0xFFF] ={0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -420,7 +423,23 @@ void decode_Execute(uint16_t opCode){
 ////////////////////////////////////////int main/////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-int main() {
+int main(int argv, char** args) {
+    
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_CreateWindowAndRenderer(64*15, 32*15, 0, &window, &renderer);
+    SDL_RenderSetScale(renderer, 15, 15);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDrawPoint(renderer, 64/2, 32/2);
+
+    SDL_RenderPresent(renderer);
+
     uint16_t opCode = 0;
 
     string filename = "";

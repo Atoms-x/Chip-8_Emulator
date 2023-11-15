@@ -9,7 +9,9 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "-I${fileDirname}/src/include/",
+                "-L${fileDirname}/src/lib/"
             ],
             "options": {
                 "cwd": "${fileDirname}"
