@@ -294,30 +294,46 @@ void decode_Execute(uint16_t opCode){
         srand(time(0));
         V[hDigitX] = (rand() % 255) & (nibThree + nibFour);
         break;
-    case 0xD000:                                                                    // Opcode DXYN - Display
+    case 0xD000:{                                                                   // Opcode DXYN - Display
         uint8_t N = nibFour;                                                        // Height of sprite in memory / number of memory locations to check
         uint8_t xCord = V[hDigitX] % 64;                                            // X-coordinate of the start of a sprite line. Modulus is because sprites will wrap
         uint8_t yCord = V[hDigitY] % 32;                                            // Y-coordinate of the start of a sprite line. Modulus is because sprites will wrap
-        uint8_t sprMemLoc = I;                                                      // Memory location start for sprite
+        uint16_t sprMemLoc = I;                                                     // Memory location start for sprite
         uint8_t sprite = 0;
 
-        for (int i=0; i <= N; i++){
-            sprite = MEMORY[sprMemLoc + i];                                         // This is the sprite position within memory, starting with the top of the sprite
+        for (int k=0; k < N; k++){
+            sprite = MEMORY[sprMemLoc + k];                                         // This is the sprite position within memory, starting with the top of the sprite
 
             if (xCord % 8 != 0){
                 uint8_t spriteLeft = sprite >> (xCord % 8);                         // This is the sprite bit shifted so that it fits properly into the left most pixel byte, since the sprite crosses over two bytes of pixel info
                 uint8_t spriteRight = sprite << (8 - (xCord % 8));                  // This is the sprite bit shifted so that it fits properly into the right most pixel byte, since the sprite crosses over two bytes of pixel info
-                uint8_t pixelLeft = frameBuffer[((xCord/8) + (yCord * 8)];          // This is the pixel byte position on the left within the frame buffer to XOR with the spriteLeft
+                uint8_t pixelLeft = frameBuffer[(xCord/8) + (yCord * 8)];           // This is the pixel byte position on the left within the frame buffer to XOR with the spriteLeft
                 uint8_t pixelRight = frameBuffer[((xCord/8)+1) + (yCord * 8)];      // This is the pixel byte position on the right within the frame buffer to XOR with the spriteRight
 
-                for (int j=0; j <= 8; j++){
-                    
+                for (int m=0; m < 8; m++){
+                    if ((((spriteLeft >> m) & 0x0001) & ((pixelLeft >> m) & 0x0001)) == 1){
+                        V[0x000F] = 1;
+                    }
+                    if ((((spriteRight >> m) & 0x0001) & ((pixelRight >> m) & 0x0001)) == 1){
+                        V[0x000F] = 1;
+                    }
+                }
+                frameBuffer[(xCord/8) + (yCord * 8)] = pixelLeft ^ spriteLeft;
+                frameBuffer[((xCord/8)+1) + (yCord * 8)] = pixelRight ^ spriteRight;
+            }
+            else{
+                uint8_t pixel = frameBuffer[(xCord/8) + (yCord * 8)];
+
+                for (int m=0; m < 8; m++){
+                    if ((((sprite >> m) & 0x0001) & ((pixel >> m) & 0x0001)) == 1){
+                        V[0x000F] = 1;
+                    }
                 }
             }
+            yCord++;
         }
-
-        cout << "NEED TO WRITE: Display/render ";
         break;
+    }
     case 0xE000:
         switch (nibThree)
         {
@@ -443,6 +459,20 @@ void decode_Execute(uint16_t opCode){
     }
 }
 
+void draw(SDL_Renderer* renderer){
+    for (int k=0; k < 256; k++){
+        uint8_t pixelByte = frameBuffer[k];
+        uint8_t yCord = k/8;
+        
+        for (int m=0; m < 8; m++){
+            if (((pixelByte >> (8-m)) & 0x1) == 1){
+                SDL_RenderDrawPoint(renderer, (m+((k%8)*8)), yCord);                                        // (x,y) 
+            }
+        }
+    }
+    SDL_RenderPresent(renderer);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////int main/////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -456,27 +486,11 @@ int main(int argv, char** args) {
     SDL_CreateWindowAndRenderer(64*15, 32*15, 0, &window, &renderer);
     SDL_RenderSetScale(renderer, 15, 15);
 
-    
-
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawPoint(renderer, 1, 1);
-    SDL_RenderDrawPoint(renderer, 2, 1);
-    SDL_RenderDrawPoint(renderer, 3, 1);
-    SDL_RenderDrawPoint(renderer, 2, 2);
-    SDL_RenderDrawPoint(renderer, 3, 2);
-    SDL_RenderDrawPoint(renderer, 3, 3);
-    SDL_RenderDrawPoint(renderer, 1, 4);
-    SDL_RenderDrawPoint(renderer, 2, 4);
-    SDL_RenderDrawPoint(renderer, 3, 4);
-
-    SDL_RenderPresent(renderer);
     
-
-    
-
     uint16_t opCode = 0;
 
     string filename = "";
@@ -488,6 +502,7 @@ int main(int argv, char** args) {
     while(1){
         opCode = fetch();
         decode_Execute(opCode);
+        draw(renderer);
     }
 
     return 0;
