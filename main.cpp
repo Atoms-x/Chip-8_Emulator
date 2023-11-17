@@ -27,6 +27,9 @@ uint8_t MEMORY[0xFFF] ={0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                         0xF0, 0x80, 0xF0, 0x80, 0x80, // F
                         
 };                                                                          // Emulated memory space for 4095 (0xFFF) bytes of RAM memory
+
+uint8_t frameBuffer[256] = {};                                              // Frame buffer for storing pixel data. It is 256 to represent 64 x 32 bits, broken down into 8 bytes x 32 bits. 
+                                                                            // Each byte will hold 8 bits/pixels of data. Each line will start after the eighth byte. In this way, it could be stored in the Memory for the first 0x200 of data
   
 uint8_t V[16] = {};                                                         // Array representing 8-bit registers - used as variables (0x0 to 0xE) + 8-bit flag register (0xF) - also a variable, but used as a flag by some instructions
 
@@ -292,6 +295,27 @@ void decode_Execute(uint16_t opCode){
         V[hDigitX] = (rand() % 255) & (nibThree + nibFour);
         break;
     case 0xD000:                                                                    // Opcode DXYN - Display
+        uint8_t N = nibFour;                                                        // Height of sprite in memory / number of memory locations to check
+        uint8_t xCord = V[hDigitX] % 64;                                            // X-coordinate of the start of a sprite line. Modulus is because sprites will wrap
+        uint8_t yCord = V[hDigitY] % 32;                                            // Y-coordinate of the start of a sprite line. Modulus is because sprites will wrap
+        uint8_t sprMemLoc = I;                                                      // Memory location start for sprite
+        uint8_t sprite = 0;
+
+        for (int i=0; i <= N; i++){
+            sprite = MEMORY[sprMemLoc + i];                                         // This is the sprite position within memory, starting with the top of the sprite
+
+            if (xCord % 8 != 0){
+                uint8_t spriteLeft = sprite >> (xCord % 8);                         // This is the sprite bit shifted so that it fits properly into the left most pixel byte, since the sprite crosses over two bytes of pixel info
+                uint8_t spriteRight = sprite << (8 - (xCord % 8));                  // This is the sprite bit shifted so that it fits properly into the right most pixel byte, since the sprite crosses over two bytes of pixel info
+                uint8_t pixelLeft = frameBuffer[((xCord/8) + (yCord * 8)];          // This is the pixel byte position on the left within the frame buffer to XOR with the spriteLeft
+                uint8_t pixelRight = frameBuffer[((xCord/8)+1) + (yCord * 8)];      // This is the pixel byte position on the right within the frame buffer to XOR with the spriteRight
+
+                for (int j=0; j <= 8; j++){
+                    
+                }
+            }
+        }
+
         cout << "NEED TO WRITE: Display/render ";
         break;
     case 0xE000:
@@ -432,13 +456,26 @@ int main(int argv, char** args) {
     SDL_CreateWindowAndRenderer(64*15, 32*15, 0, &window, &renderer);
     SDL_RenderSetScale(renderer, 15, 15);
 
+    
+
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawPoint(renderer, 64/2, 32/2);
+    SDL_RenderDrawPoint(renderer, 1, 1);
+    SDL_RenderDrawPoint(renderer, 2, 1);
+    SDL_RenderDrawPoint(renderer, 3, 1);
+    SDL_RenderDrawPoint(renderer, 2, 2);
+    SDL_RenderDrawPoint(renderer, 3, 2);
+    SDL_RenderDrawPoint(renderer, 3, 3);
+    SDL_RenderDrawPoint(renderer, 1, 4);
+    SDL_RenderDrawPoint(renderer, 2, 4);
+    SDL_RenderDrawPoint(renderer, 3, 4);
 
     SDL_RenderPresent(renderer);
+    
+
+    
 
     uint16_t opCode = 0;
 
