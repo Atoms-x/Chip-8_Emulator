@@ -310,16 +310,16 @@ void decode_Execute(uint16_t opCode){
                 uint8_t pixelLeft = frameBuffer[(xCord/8) + (yCord * 8)];           // This is the pixel byte position on the left within the frame buffer to XOR with the spriteLeft
                 uint8_t pixelRight = frameBuffer[((xCord/8)+1) + (yCord * 8)];      // This is the pixel byte position on the right within the frame buffer to XOR with the spriteRight
 
-                for (int m=0; m < 8; m++){
-                    if ((((spriteLeft >> m) & 0x0001) & ((pixelLeft >> m) & 0x0001)) == 1){
+                for (int m=0; m < 8; m++){                                                          
+                    if ((((spriteLeft >> m) & 0x0001) & ((pixelLeft >> m) & 0x0001)) == 1){         // Checks if there is a collision from overlapping pixels
                         V[0x000F] = 1;
                     }
-                    if ((((spriteRight >> m) & 0x0001) & ((pixelRight >> m) & 0x0001)) == 1){
+                    if ((((spriteRight >> m) & 0x0001) & ((pixelRight >> m) & 0x0001)) == 1){       // Checks if there is a collision from overlapping pixels
                         V[0x000F] = 1;
                     }
                 }
-                frameBuffer[(xCord/8) + (yCord * 8)] = pixelLeft ^ spriteLeft;
-                frameBuffer[((xCord/8)+1) + (yCord * 8)] = pixelRight ^ spriteRight;
+                frameBuffer[(xCord/8) + (yCord * 8)] = pixelLeft ^ spriteLeft;                      // XORs the sprite with the frame buffer pixel
+                frameBuffer[((xCord/8)+1) + (yCord * 8)] = pixelRight ^ spriteRight;                // XORs the sprite with the frame buffer pixel
             }
             else{
                 uint8_t pixel = frameBuffer[(xCord/8) + (yCord * 8)];
@@ -465,7 +465,7 @@ void draw(SDL_Renderer* renderer){
         uint8_t yCord = k/8;
         
         for (int m=0; m < 8; m++){
-            if (((pixelByte >> (8-m)) & 0x1) == 1){
+            if (((pixelByte >> (7-m)) & 0x1) == 1){
                 SDL_RenderDrawPoint(renderer, (m+((k%8)*8)), yCord);                                        // (x,y) 
             }
         }
