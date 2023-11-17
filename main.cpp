@@ -329,6 +329,7 @@ void decode_Execute(uint16_t opCode){
                         V[0x000F] = 1;
                     }
                 }
+                frameBuffer[(xCord/8) + (yCord * 8)] = pixel ^ sprite;
             }
             yCord++;
         }
