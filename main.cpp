@@ -218,51 +218,55 @@ void decode_Execute(uint16_t opCode){
         case 0x0003:
             V[hDigitX] = V[hDigitX] ^ V[hDigitY];                                                   // Opcode 8XY3 - Set VX = VX ^ VY
             break;
-        case 0x0004:
-            V[hDigitX] = V[hDigitX] + V[hDigitY];                                                   // Opcode 8XY4 - Set VX = VX ^ VY, if VX > 255 set VF = 1, otherwise VF = 0
-            if(V[hDigitX] > 0x00FF){                         
+        case 0x0004:                                                  
+            if((0x00FF - V[hDigitX] < V[hDigitY])){                                                 // Opcode 8XY4 - Set VX = VX + VY, if VX > 255 set VF = 1, otherwise VF = 0              
+                V[hDigitX] = V[hDigitX] + V[hDigitY]; 
                 V[0x000F] = 1;
-                V[hDigitX] = V[hDigitX] & 0x00FF;
             }
             else{
+                V[hDigitX] = V[hDigitX] + V[hDigitY]; 
                 V[0x000F] = 0;
-            }                           
+            }                  
             break;
         case 0x0005:                                                                                // OpCode 8XY5 - If VX > VY set VF = 1, otherwise VF = 0. The VX = VX - VY
-            if (V[hDigitX] > V[hDigitY]){
+            if (V[hDigitX] >= V[hDigitY]){
+                V[hDigitX] = V[hDigitX] - V[hDigitY];
                 V[0x000F] = 1;
             }
             else{
+                V[hDigitX] = V[hDigitX] - V[hDigitY];
                 V[0x000F] = 0;
             }
-            V[hDigitX] = V[hDigitX] - V[hDigitY];
             break;
         case 0x0006:
             if ((V[hDigitX] & 0x0001 == 1)){                                                        // Opcode 8XY6 - IF least-significant bit of VX is 1, VF = 1, else VF = 0, then bit shift to divide VX by 2
+                V[hDigitX] = V[hDigitX] >> 1;
                 V[0x000F] = 1;
             }
             else{
+                V[hDigitX] = V[hDigitX] >> 1;
                 V[0x000F] = 0;
             }
-            V[hDigitX] = V[hDigitX] >> 1;
             break;
         case 0x0007:
-            if (V[hDigitX] < V[hDigitY]){                                                           // Opcode 8XY7 - If VX < VY set VF = 1, otherwise VF = 0. The VX = VY - VX
+            if (V[hDigitX] <= V[hDigitY]){                                                           // Opcode 8XY7 - If VX < VY set VF = 1, otherwise VF = 0. The VX = VY - VX
+                V[hDigitX] = V[hDigitY] - V[hDigitX];
                 V[0x000F] = 1;
             }
             else{
+                V[hDigitX] = V[hDigitY] - V[hDigitX];
                 V[0x000F] = 0;
             }
-            V[hDigitX] = V[hDigitY] - V[hDigitX];
             break;
         case 0x000E:
             if (((V[hDigitX])>>7) & 0x0001 == 1){                                                   // Opcode 8XYE - If most-significant bit of VX is 1, VF = 1, else VF = 0, then bit shift to divide VX by 2
+                V[hDigitX] = V[hDigitX] << 1;
                 V[0x000F] = 1;
             }
             else{
+                V[hDigitX] = V[hDigitX] << 1;
                 V[0x000F] = 0;
             }
-            V[hDigitX] = V[hDigitX] << 1;
             break;
         default:
             cout << "Code Error! 8000";
@@ -285,7 +289,7 @@ void decode_Execute(uint16_t opCode){
         }
         break;
     case 0xA000:
-        I = (nibTwo + nibThree + nibFour);                                                          // Opcode ANNN - Set I to addres NNN
+        I = (nibTwo + nibThree + nibFour);                                                          // Opcode ANNN - Set I to address NNN
         break;
     case 0xB000:
         PC = (nibTwo + nibThree + nibFour) + V[0x0];                                                // Opcode BNNN - Set PC to address NNN + V0
@@ -377,6 +381,7 @@ void decode_Execute(uint16_t opCode){
                 break;
             case 0x000A:
                 cout << "NEED TO WRITE: Wait for keypress ";                                        // Opcode FX0A - Wait for keypress
+                break;
             default:
                 cout << "Code Error! F000";
                 exit(1);
@@ -391,8 +396,10 @@ void decode_Execute(uint16_t opCode){
                 break;
             case 0x0008:
                 cout << "NEED TO WRITE: Set sound timer to VX ";                                    // Opcode FX18 - Set sound timer to VX
+                break;
             case 0x000E:
                 I = I + V[hDigitX];                                                                 // Opcode FX1E - Add values of I and VX and store in I
+                break;
             default:
                 cout << "Code Error! F010";
                 exit(1);
@@ -403,7 +410,8 @@ void decode_Execute(uint16_t opCode){
             switch (nibFour)
             {
             case 0x0009:
-                cout << "NEED TO WRITE: set I to sprite address for character sprite in VX ";       //Opcode FX29 - Set location of sprite for character in VX
+                I = hDigitX*5;                                                                      //Opcode FX29 - Set location of sprite for font character in VX
+                cout << "Stored Font Call";     
                 break;
             default:
                 cout << "Code Error! F020";
