@@ -32,6 +32,7 @@ uint8_t frameBuffer[256] = {};                                              // F
                                                                             // Each byte will hold 8 bits/pixels of data. Each line will start after the eighth byte. In this way, it could be stored in the Memory for the first 0x200 of data
   
 uint8_t V[16] = {};                                                         // Array representing 8-bit registers - used as variables (0x0 to 0xE) + 8-bit flag register (0xF) - also a variable, but used as a flag by some instructions
+uint8_t SC8F[8] = {};                                                       // Super Chip 8 HP-48 RPL Flags
 
 uint16_t I;                                                                 // 16-bit index register for memory addresses - Only rightmost 12 bits used since only 4096 memory available
 uint16_t PC = 0x200;                                                        // Program Counter - stores currently executing address
@@ -399,6 +400,9 @@ void decode_Execute(uint16_t opCode){
                 break;
             case 0x000E:
                 I = I + V[hDigitX];                                                                 // Opcode FX1E - Add values of I and VX and store in I
+                if (I > 0xFFF){
+                    V[0x000F] = 1;                                                                  // Extended Behavior
+                }
                 break;
             default:
                 cout << "Code Error! F010";
@@ -471,10 +475,15 @@ void decode_Execute(uint16_t opCode){
         case 0x0070:
             switch (nibFour)
             {
-            case 0x0005:
+            case 0x0005:{
+                if (hDigitX <= 7){
+                    for(int k=0; k <= hDigitX; k++){
+                        SC8F[k] = V[k];
+                    }
+                }
                 cout << "Implement Opcode FX75 SUPERCHIP";
                 break;
-            
+            }
             default:
                 cout << "Code Error! F070";
                 break;
@@ -483,10 +492,15 @@ void decode_Execute(uint16_t opCode){
         case 0x0080:
             switch (nibFour)
             {
-            case 0x0005:
+            case 0x0005:{
+                if (hDigitX <= 7){
+                    for(int k=0; k <= hDigitX; k++){
+                        V[k] = SC8F[k];
+                    }
+                }
                 cout << "Implement Opcode FX85 SUPERCHIP";
                 break;
-            
+            }
             default:
                 cout << "Code Error! F080";
                 break;
