@@ -468,6 +468,30 @@ void decode_Execute(uint16_t opCode){
                 break;
             }
             break;
+        case 0x0070:
+            switch (nibFour)
+            {
+            case 0x0005:
+                cout << "Implement Opcode FX75 SUPERCHIP";
+                break;
+            
+            default:
+                cout << "Code Error! F070";
+                break;
+            }
+            break;
+        case 0x0080:
+            switch (nibFour)
+            {
+            case 0x0005:
+                cout << "Implement Opcode FX85 SUPERCHIP";
+                break;
+            
+            default:
+                cout << "Code Error! F080";
+                break;
+            }
+            break;
         default:
             cout << "Code Error! F";
             exit(1);
