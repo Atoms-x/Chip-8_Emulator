@@ -2,7 +2,7 @@
 #include <fstream>
 #include <stdint.h>
 #include <cstdlib>
-#include <time.h>
+#include <chrono>
 
 //#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
@@ -42,7 +42,14 @@ uint8_t SP = 0;                                                             // S
 
 uint8_t DELAY;                                                              // 8-bit delay timer, count down at 60Hz until it reaches 0. Value can be set and read
 uint8_t SOUND;                                                              // 8-bit soudn timer, count down at 60Hz until it reaches 0. Beep is played when value is non-zero
-
+uint8_t deltaTimeDelayFrame;                                                // Elapsed time for the delay timer
+uint8_t deltaTimeSoundFrame;                                                // Elapsed time for the Sound timer
+const double hertz = 0.01667;
+const double cycle = 1.0;
+chrono::duration<double> elapsedDelayTime;
+chrono::duration<double> elapsedSoundTime;
+auto T1 = chrono::steady_clock::now();
+auto T2 = chrono::steady_clock::now();
 
 //***************************************************************************
 // void fileReadToMemory
@@ -124,7 +131,7 @@ uint16_t fetch(){
 //  Purpose:
 //      L
 //***************************************************************************
-void decode_Execute(uint16_t opCode){
+void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
     uint16_t nibOne;                                                                                // Creating four nibbles that are 16-bit so they can be switch/cased by each digit, working down what Opcode to execute
     uint16_t nibTwo;
     uint16_t nibThree;
@@ -150,7 +157,8 @@ void decode_Execute(uint16_t opCode){
                 switch (nibFour)
                 {
                 case 0x0000:
-                    cout << "NEED TO WRITE: Clears the Screen ";                                    // Opcode 00E0 - Clears the screen
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                    SDL_RenderClear(renderer);                                                      // Opcode 00E0 - Clears the screen
                     break;
                 case 0x000E:
                     PC = STACK[SP];                                                                 // Opcode 00EE - Returns from a subroutine/sets PC to NNN/addr at top of stack, then decrements the stack pointer/stack
@@ -169,7 +177,7 @@ void decode_Execute(uint16_t opCode){
             }
             break;
         default:
-            cout << "NEED TO WRITE: 0NNN Opcode ";                                                  // Opcode 0NNN - Call machine code routine at address NNN
+            cout << "NEED TO WRITE: 0NNN Opcode ";                                                  // Opcode 0NNN - Call machine code routine at address NNN - COULD PROBABLY BE IGNORED FOR MOST ROMS
             break;
         }
         break;
@@ -377,9 +385,22 @@ void decode_Execute(uint16_t opCode){
         case 0x0000:
             switch (nibFour)
             {
-            case 0x0007:
-                cout << "NEED TO WRITE: Set VX to the value of delay timer ";                       // OpCode FX07 - Set VX to the value of the delay timer
+            case 0x0007:{
+                T2 = chrono::steady_clock::now();                                                   // OpCode FX07 - Set VX to the value of the delay timer
+                elapsedDelayTime = T2-T1;
+                if (elapsedDelayTime.count() >= cycle){
+                    DELAY = 0;
+                    V[hDigitX] = DELAY;
+                }
+                else{
+                    deltaTimeDelayFrame = 60 - (elapsedDelayTime.count()/hertz);
+                    if (DELAY != deltaTimeDelayFrame){
+                        DELAY = deltaTimeDelayFrame;
+                        V[hDigitX] = DELAY;
+                    }
+                }                    
                 break;
+            }
             case 0x000A:
                 cout << "NEED TO WRITE: Wait for keypress ";                                        // Opcode FX0A - Wait for keypress
                 break;
@@ -392,9 +413,11 @@ void decode_Execute(uint16_t opCode){
         case 0x0010:
             switch (nibFour)
             {
-            case 0x0005:
-                cout << "NEED TO WRITE: Set delay timer to VX ";                                    // Opcode FX15 - Set delay timer to VX
+            case 0x0005:{
+                DELAY = V[hDigitX];                                                                 // Opcode FX15 - Set delay timer to VX
+                T1 = chrono::steady_clock::now();                                  
                 break;
+            }
             case 0x0008:
                 cout << "NEED TO WRITE: Set sound timer to VX ";                                    // Opcode FX18 - Set sound timer to VX
                 break;
@@ -475,13 +498,12 @@ void decode_Execute(uint16_t opCode){
         case 0x0070:
             switch (nibFour)
             {
-            case 0x0005:{
+            case 0x0005:{                                                                           // Opcode FX75 - Load V registers into HP48 style RPL flags - SUPERCHIP 8 instruction
                 if (hDigitX <= 7){
                     for(int k=0; k <= hDigitX; k++){
                         SC8F[k] = V[k];
                     }
                 }
-                cout << "Implement Opcode FX75 SUPERCHIP";
                 break;
             }
             default:
@@ -492,13 +514,12 @@ void decode_Execute(uint16_t opCode){
         case 0x0080:
             switch (nibFour)
             {
-            case 0x0005:{
+            case 0x0005:{                                                                           // Opcode FX85 - Load HP48 style RPL flags into V registers - SUPERCHIP 8 instruction
                 if (hDigitX <= 7){
                     for(int k=0; k <= hDigitX; k++){
                         V[k] = SC8F[k];
                     }
                 }
-                cout << "Implement Opcode FX85 SUPERCHIP";
                 break;
             }
             default:
@@ -519,12 +540,24 @@ void decode_Execute(uint16_t opCode){
     }
 }
 
+//***************************************************************************
+// void draw
+//  Arguments:
+//      s
+//  Returns:
+//      N
+//  Purpose:
+//      L
+//***************************************************************************
 void draw(SDL_Renderer* renderer){
-    for (int k=0; k < 256; k++){
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);                                                 // Set clear screen to black
+    SDL_RenderClear(renderer);                                                                      // Clear screen since not every pixel will be set or unset individually
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);                                           // Set pixel draw color to white
+    for (int k=0; k < 256; k++){                                                                    // Pass through every pixel byte, from top left to bottom right as one-dimensional array abstracted into two-dimensional array
         uint8_t pixelByte = frameBuffer[k];
-        uint8_t yCord = k/8;
+        uint8_t yCord = k/8;                                                                        // Screen is 64 pixels wide, meaning that it can be made up of 8 pixel bytes to store pixel bit data as bits and save memory
         
-        for (int m=0; m < 8; m++){
+        for (int m=0; m < 8; m++){                                                                  // Check each of the bits on each pixel byte from left to right by bit shifting to the pixel and masking with 0x0001
             if (((pixelByte >> (7-m)) & 0x1) == 1){
                 SDL_RenderDrawPoint(renderer, (m+((k%8)*8)), yCord);                                // (x,y) 
             }
@@ -539,17 +572,18 @@ void draw(SDL_Renderer* renderer){
 
 int main(int argv, char** args) {
     
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
+    SDL_Window* window = nullptr;                                                                   // Create SDL game window
+    SDL_Renderer* renderer = nullptr;                                                               // Create SDL render object
+    SDL_Event keyPress;
 
-    SDL_Init(SDL_INIT_VIDEO);
-    SDL_CreateWindowAndRenderer(64*15, 32*15, 0, &window, &renderer);
-    SDL_RenderSetScale(renderer, 15, 15);
+    SDL_Init(SDL_INIT_VIDEO);                                                                       // Intialize the the game window
+    SDL_CreateWindowAndRenderer(64*15, 32*15, 0, &window, &renderer);                               // Give window and renderer dimensions
+    SDL_RenderSetScale(renderer, 15, 15);                                                           // Set render scale for correct pixel to screen size, important for small resolution on high resolution monitors POSSIBLY MAKE ADJUSTABLE FOR VARIOUS MONITORS
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);                                                 // Set initial background color
+    SDL_RenderClear(renderer);                                                                      // Clear the screen with the background color (black)
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);                                           // Set pixel draw color (white)
     
     uint16_t opCode = 0;
 
@@ -561,7 +595,7 @@ int main(int argv, char** args) {
 
     while(1){
         opCode = fetch();
-        decode_Execute(opCode);
+        decode_Execute(opCode, renderer);
         draw(renderer);
     }
 
