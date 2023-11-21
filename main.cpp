@@ -42,14 +42,20 @@ uint8_t SP = 0;                                                             // S
 
 uint8_t DELAY;                                                              // 8-bit delay timer, count down at 60Hz until it reaches 0. Value can be set and read
 uint8_t SOUND;                                                              // 8-bit soudn timer, count down at 60Hz until it reaches 0. Beep is played when value is non-zero
-uint8_t deltaTimeDelayFrame;                                                // Elapsed time for the delay timer
-uint8_t deltaTimeSoundFrame;                                                // Elapsed time for the Sound timer
-const double hertz = 0.01667;
-const double cycle = 1.0;
-chrono::duration<double> elapsedDelayTime;
-chrono::duration<double> elapsedSoundTime;
-auto T1 = chrono::steady_clock::now();
-auto T2 = chrono::steady_clock::now();
+uint8_t DELTATIMEDELAYFRAME;                                                // Elapsed time for the delay timer
+uint8_t DELTATIMESOUNDFRAME;                                                // Elapsed time for the Sound timer
+const double HERTZ = 0.01667;                                               // 60 ticks per second
+double CYCLE = 0;                                                           // Set in delay to create total actual time in seconds by DELAY/60
+chrono::duration<double> ELAPSEDDELAYTIME;                                  // Elapsed time for Delay timer
+chrono::duration<double> ELAPSEDSOUNDTIME;
+auto DELAYT1 = chrono::steady_clock::now();                                 // Delay start time
+auto DELAYT2 = chrono::steady_clock::now();                                 // Delay current check time
+
+auto REFRESHT1 = chrono::steady_clock::now();
+auto REFRESHT2 = chrono::steady_clock::now();
+chrono::duration<double> ELAPSEDREFRESHTIME;
+
+bool DRAWCALL = false;                                                      // Only re-draw screen when a draw call has been made
 
 //***************************************************************************
 // void fileReadToMemory
@@ -346,6 +352,8 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
             }
             yCord++;
         }
+        DRAWCALL = true;
+        REFRESHT1 = chrono::steady_clock::now();
         break;
     }
     case 0xE000:
@@ -386,16 +394,17 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
             switch (nibFour)
             {
             case 0x0007:{
-                T2 = chrono::steady_clock::now();                                                   // OpCode FX07 - Set VX to the value of the delay timer
-                elapsedDelayTime = T2-T1;
-                if (elapsedDelayTime.count() >= cycle){
+                DELAYT2 = chrono::steady_clock::now();                                                   // OpCode FX07 - Set VX to the value of the delay timer
+                ELAPSEDDELAYTIME = DELAYT2-DELAYT1;
+                if (ELAPSEDDELAYTIME.count() >= CYCLE){
                     DELAY = 0;
+                    CYCLE = 0;
                     V[hDigitX] = DELAY;
                 }
                 else{
-                    deltaTimeDelayFrame = 60 - (elapsedDelayTime.count()/hertz);
-                    if (DELAY != deltaTimeDelayFrame){
-                        DELAY = deltaTimeDelayFrame;
+                    DELTATIMEDELAYFRAME = CYCLE - (ELAPSEDDELAYTIME.count()/HERTZ);
+                    if (DELAY != DELTATIMEDELAYFRAME){
+                        DELAY = DELTATIMEDELAYFRAME;
                         V[hDigitX] = DELAY;
                     }
                 }                    
@@ -415,7 +424,8 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
             {
             case 0x0005:{
                 DELAY = V[hDigitX];                                                                 // Opcode FX15 - Set delay timer to VX
-                T1 = chrono::steady_clock::now();                                  
+                CYCLE = DELAY/60;
+                DELAYT1 = chrono::steady_clock::now();                                  
                 break;
             }
             case 0x0008:
@@ -555,7 +565,7 @@ void draw(SDL_Renderer* renderer){
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);                                           // Set pixel draw color to white
     for (int k=0; k < 256; k++){                                                                    // Pass through every pixel byte, from top left to bottom right as one-dimensional array abstracted into two-dimensional array
         uint8_t pixelByte = frameBuffer[k];
-        uint8_t yCord = k/8;                                                                        // Screen is 64 pixels wide, meaning that it can be made up of 8 pixel bytes to store pixel bit data as bits and save memory
+        uint8_t yCord = k/8;                                                                        // Screen is 64 pixels wide, meaning that a line can be made up of 8 pixel bytes to store pixel bit data as bits and save memory
         
         for (int m=0; m < 8; m++){                                                                  // Check each of the bits on each pixel byte from left to right by bit shifting to the pixel and masking with 0x0001
             if (((pixelByte >> (7-m)) & 0x1) == 1){
@@ -572,6 +582,8 @@ void draw(SDL_Renderer* renderer){
 
 int main(int argv, char** args) {
     
+    //int frameCheck = 0;
+
     SDL_Window* window = nullptr;                                                                   // Create SDL game window
     SDL_Renderer* renderer = nullptr;                                                               // Create SDL render object
     SDL_Event keyPress;
@@ -596,7 +608,23 @@ int main(int argv, char** args) {
     while(1){
         opCode = fetch();
         decode_Execute(opCode, renderer);
-        draw(renderer);
+        
+        if(DRAWCALL == true){
+            REFRESHT2 = chrono::steady_clock::now();
+            ELAPSEDREFRESHTIME = REFRESHT2 - REFRESHT1;
+
+            while (ELAPSEDREFRESHTIME.count() <= HERTZ){
+                REFRESHT2 = chrono::steady_clock::now();
+                ELAPSEDREFRESHTIME = REFRESHT2 - REFRESHT1;
+            }
+
+            //cout << "Render: " << frameCheck << endl;
+            draw(renderer);
+            DRAWCALL = false;
+            //frameCheck++;
+
+        }
+
     }
 
     return 0;
