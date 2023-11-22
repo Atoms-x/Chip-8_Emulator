@@ -42,10 +42,9 @@ uint8_t SP = 0;                                                             // S
 
 uint8_t DELAY;                                                              // 8-bit delay timer, count down at 60Hz until it reaches 0. Value can be set and read
 uint8_t SOUND;                                                              // 8-bit soudn timer, count down at 60Hz until it reaches 0. Beep is played when value is non-zero
-uint8_t DELTATIMEDELAYFRAME;                                                // Elapsed time for the delay timer
-uint8_t DELTATIMESOUNDFRAME;                                                // Elapsed time for the Sound timer
+
 const double HERTZ = 0.01667;                                               // 60 ticks per second
-double CYCLE = 0;                                                           // Set in delay to create total actual time in seconds by DELAY/60
+
 chrono::duration<double> ELAPSEDDELAYTIME;                                  // Elapsed time for Delay timer
 chrono::duration<double> ELAPSEDSOUNDTIME;
 auto DELAYT1 = chrono::steady_clock::now();                                 // Delay start time
@@ -394,20 +393,15 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
             switch (nibFour)
             {
             case 0x0007:{
-                DELAYT2 = chrono::steady_clock::now();                                                   // OpCode FX07 - Set VX to the value of the delay timer
+                
+                DELAYT2 = chrono::steady_clock::now();                                             // OpCode FX07 - Set VX to the value of the delay timer
                 ELAPSEDDELAYTIME = DELAYT2-DELAYT1;
-                if (ELAPSEDDELAYTIME.count() >= CYCLE){
-                    DELAY = 0;
-                    CYCLE = 0;
-                    V[hDigitX] = DELAY;
+                
+                if (ELAPSEDDELAYTIME.count() >= HERTZ){
+                    DELAY--;
+                    DELAYT1 = DELAYT2;
                 }
-                else{
-                    DELTATIMEDELAYFRAME = CYCLE - (ELAPSEDDELAYTIME.count()/HERTZ);
-                    if (DELAY != DELTATIMEDELAYFRAME){
-                        DELAY = DELTATIMEDELAYFRAME;
-                        V[hDigitX] = DELAY;
-                    }
-                }                    
+                V[hDigitX] = DELAY;
                 break;
             }
             case 0x000A:
@@ -423,9 +417,10 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
             switch (nibFour)
             {
             case 0x0005:{
+                
                 DELAY = V[hDigitX];                                                                 // Opcode FX15 - Set delay timer to VX
-                CYCLE = DELAY/60;
-                DELAYT1 = chrono::steady_clock::now();                                  
+                DELAYT1 = chrono::steady_clock::now();
+                                                  
                 break;
             }
             case 0x0008:
@@ -582,7 +577,7 @@ void draw(SDL_Renderer* renderer){
 
 int main(int argv, char** args) {
     
-    //int frameCheck = 0;
+    int frameCheck = 0;
 
     SDL_Window* window = nullptr;                                                                   // Create SDL game window
     SDL_Renderer* renderer = nullptr;                                                               // Create SDL render object
@@ -610,22 +605,20 @@ int main(int argv, char** args) {
         decode_Execute(opCode, renderer);
         
         if(DRAWCALL == true){
+            
             REFRESHT2 = chrono::steady_clock::now();
             ELAPSEDREFRESHTIME = REFRESHT2 - REFRESHT1;
 
-            while (ELAPSEDREFRESHTIME.count() <= HERTZ){
+            while (ELAPSEDREFRESHTIME.count() <= 0.004667){
                 REFRESHT2 = chrono::steady_clock::now();
                 ELAPSEDREFRESHTIME = REFRESHT2 - REFRESHT1;
             }
-
-            //cout << "Render: " << frameCheck << endl;
+            
+            cout << "Render: " << frameCheck << endl;
             draw(renderer);
             DRAWCALL = false;
-            //frameCheck++;
-
+            frameCheck++;
         }
-
     }
-
     return 0;
 }
