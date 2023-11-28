@@ -136,7 +136,7 @@ uint16_t fetch(){
 //  Purpose:
 //      L
 //***************************************************************************
-void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
+void decode_Execute(uint16_t opCode, SDL_Renderer* renderer, SDL_Event keyPress){
     uint16_t nibOne;                                                                                // Creating four nibbles that are 16-bit so they can be switch/cased by each digit, working down what Opcode to execute
     uint16_t nibTwo;
     uint16_t nibThree;
@@ -361,9 +361,106 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
         case 0x0090:
             switch (nibFour)
             {
-            case 0x000E:                                                                            // Opcode EX9E - Key press check for VX
-                cout << "NEED TO WRITE: Key press check for VX ";
+            case 0x000E:{                                                                           // Opcode EX9E - Key press check for VX
+                
+                uint8_t key = V[hDigitX];
+
+                while(SDL_PollEvent(&keyPress)){
+                    switch (keyPress.type)
+                    {
+                    case SDL_KEYDOWN:
+                        switch (keyPress.key.keysym.scancode)
+                        {
+                        case SDL_SCANCODE_1:
+                            if(key == 0x1){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_2:
+                            if(key == 0x2){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_3:
+                            if(key == 0x3){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_4:
+                            if(key == 0xC){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_Q:
+                            if(key == 0x4){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_W:
+                            if(key == 0x5){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_E:
+                            if(key == 0x6){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_R:
+                            if(key == 0xD){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_A:
+                            if(key == 0x7){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_S:
+                            if(key == 0x8){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_D:
+                            if(key == 0x9){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_F:
+                            if(key == 0xE){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_Z:
+                            if(key == 0xA){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_X:
+                            if(key == 0x0){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_C:
+                            if(key == 0xB){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_V:
+                            if(key == 0xF){
+                                PC += 2;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
                 break;
+            }                                                                             
             default:
                 cout << "Code Error! EX9";
                 exit(1);
@@ -373,8 +470,103 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer){
         case 0x00A0:
             switch (nibFour)
             {
-            case 0x0001:
-                cout << "NEED TO WRITE: Key press check against VX ";                               // Opcode EXA1 - key press check against VX
+            case 0x0001:                                                                              // Opcode EXA1 - key press check against VX                              
+                uint8_t key = V[hDigitX];
+                
+                while(SDL_PollEvent(&keyPress)){
+                    switch (keyPress.type)
+                    {
+                    case SDL_KEYUP:
+                        switch (keyPress.key.keysym.scancode)
+                        {
+                        case SDL_SCANCODE_1:
+                            if(key == 0x1){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_2:
+                            if(key == 0x2){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_3:
+                            if(key == 0x3){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_4:
+                            if(key == 0xC){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_Q:
+                            if(key == 0x4){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_W:
+                            if(key == 0x5){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_E:
+                            if(key == 0x6){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_R:
+                            if(key == 0xD){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_A:
+                            if(key == 0x7){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_S:
+                            if(key == 0x8){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_D:
+                            if(key == 0x9){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_F:
+                            if(key == 0xE){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_Z:
+                            if(key == 0xA){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_X:
+                            if(key == 0x0){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_C:
+                            if(key == 0xB){
+                                PC += 2;
+                            }
+                            break;
+                        case SDL_SCANCODE_V:
+                            if(key == 0xF){
+                                PC += 2;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
                 break;
             default:
                 cout << "Code Error! EXA";
@@ -602,7 +794,7 @@ int main(int argv, char** args) {
 
     while(1){
         opCode = fetch();
-        decode_Execute(opCode, renderer);
+        decode_Execute(opCode, renderer, keyPress);
         
         if(DRAWCALL == true){
             
@@ -614,10 +806,10 @@ int main(int argv, char** args) {
                 ELAPSEDREFRESHTIME = REFRESHT2 - REFRESHT1;
             }
             
-            cout << "Render: " << frameCheck << endl;
+            //cout << "Render: " << frameCheck << endl;
             draw(renderer);
             DRAWCALL = false;
-            frameCheck++;
+            //frameCheck++;
         }
     }
     return 0;
