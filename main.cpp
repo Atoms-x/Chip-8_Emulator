@@ -470,7 +470,7 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer, SDL_Event keyPress)
         case 0x00A0:
             switch (nibFour)
             {
-            case 0x0001:                                                                              // Opcode EXA1 - key press check against VX                              
+            case 0x0001:{                                                                           // Opcode EXA1 - key press check against VX                              
                 uint8_t key = V[hDigitX];
                 
                 while(SDL_PollEvent(&keyPress)){
@@ -480,82 +480,82 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer, SDL_Event keyPress)
                         switch (keyPress.key.keysym.scancode)
                         {
                         case SDL_SCANCODE_1:
-                            if(key == 0x1){
+                            if(key != 0x1){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_2:
-                            if(key == 0x2){
+                            if(key != 0x2){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_3:
-                            if(key == 0x3){
+                            if(key != 0x3){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_4:
-                            if(key == 0xC){
+                            if(key != 0xC){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_Q:
-                            if(key == 0x4){
+                            if(key != 0x4){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_W:
-                            if(key == 0x5){
+                            if(key != 0x5){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_E:
-                            if(key == 0x6){
+                            if(key != 0x6){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_R:
-                            if(key == 0xD){
+                            if(key != 0xD){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_A:
-                            if(key == 0x7){
+                            if(key != 0x7){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_S:
-                            if(key == 0x8){
+                            if(key != 0x8){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_D:
-                            if(key == 0x9){
+                            if(key != 0x9){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_F:
-                            if(key == 0xE){
+                            if(key != 0xE){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_Z:
-                            if(key == 0xA){
+                            if(key != 0xA){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_X:
-                            if(key == 0x0){
+                            if(key != 0x0){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_C:
-                            if(key == 0xB){
+                            if(key != 0xB){
                                 PC += 2;
                             }
                             break;
                         case SDL_SCANCODE_V:
-                            if(key == 0xF){
+                            if(key != 0xF){
                                 PC += 2;
                             }
                             break;
@@ -568,16 +568,19 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer, SDL_Event keyPress)
                     }
                 }
                 break;
+            }
             default:
                 cout << "Code Error! EXA";
                 exit(1);
                 break;
             }
+            break;
         default:
             cout << "Code Error! E000";
             exit(1);    
             break;
         }
+        break;
     case 0xF000:
         switch (nibThree)
         {
@@ -590,14 +593,88 @@ void decode_Execute(uint16_t opCode, SDL_Renderer* renderer, SDL_Event keyPress)
                 ELAPSEDDELAYTIME = DELAYT2-DELAYT1;
                 
                 if (ELAPSEDDELAYTIME.count() >= HERTZ){
-                    DELAY--;
-                    DELAYT1 = DELAYT2;
+                    if((DELAY) < (ELAPSEDDELAYTIME.count()/HERTZ)){
+                        DELAY = 0;
+                        DELAYT1 = DELAYT2;
+                    }
+                    else{
+                        DELAY -= ELAPSEDDELAYTIME.count()/HERTZ;
+                        DELAYT1 = DELAYT2;
+                    }
                 }
                 V[hDigitX] = DELAY;
                 break;
             }
             case 0x000A:
                 cout << "NEED TO WRITE: Wait for keypress ";                                        // Opcode FX0A - Wait for keypress
+                while(SDL_PollEvent(&keyPress)){
+                    if(keyPress.key.state = SDL_PRESSED){
+                        switch (keyPress.type)
+                        {
+                        case SDL_KEYDOWN:
+                            switch (keyPress.key.keysym.scancode)
+                            {
+                            case SDL_SCANCODE_1:
+                                V[hDigitX] = 0x1;
+                                break;
+                            case SDL_SCANCODE_2:
+                                V[hDigitX] = 0x2;
+                                break;
+                            case SDL_SCANCODE_3:
+                                V[hDigitX] = 0x3;
+                                break;
+                            case SDL_SCANCODE_4:
+                                V[hDigitX] = 0xC;
+                                break;
+                            case SDL_SCANCODE_Q:
+                                V[hDigitX] = 0x4;
+                                break;
+                            case SDL_SCANCODE_W:
+                                V[hDigitX] = 0x5;
+                                break;
+                            case SDL_SCANCODE_E:
+                                V[hDigitX] = 0x6;
+                                break;
+                            case SDL_SCANCODE_R:
+                                V[hDigitX] = 0xD;
+                                break;
+                            case SDL_SCANCODE_A:
+                                V[hDigitX] = 0x7;
+                                break;
+                            case SDL_SCANCODE_S:
+                                V[hDigitX] = 0x8;
+                                break;
+                            case SDL_SCANCODE_D:
+                                V[hDigitX] = 0x9;
+                                break;
+                            case SDL_SCANCODE_F:
+                                V[hDigitX] = 0xE;
+                                break;
+                            case SDL_SCANCODE_Z:
+                                V[hDigitX] = 0xA;
+                                break;
+                            case SDL_SCANCODE_X:
+                                V[hDigitX] = 0x0;
+                                break;
+                            case SDL_SCANCODE_C:
+                                V[hDigitX] = 0xB;
+                                break;
+                            case SDL_SCANCODE_V:
+                                V[hDigitX] = 0xF;
+                                break;
+                            default:
+                                break;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+
+                    }
+                    else{
+                        PC -= 2;
+                    }
+                }
                 break;
             default:
                 cout << "Code Error! F000";
